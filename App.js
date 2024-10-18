@@ -1,20 +1,52 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-gesture-handler'; // Make sure this is at the top
+// import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 
-export default function App() {
+import Login from './src/screens/Login';
+import Dashboard from './src/screens/Dashboard';
+import Details from './src/screens/Details';
+import DrawerTab from './src/screens/components/DrawerTab';
+
+const Drawer = createDrawerNavigator();
+
+const App = () => {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Drawer.Navigator
+        initialRouteName="Login"
+        screenOptions={{
+          headerShown: false,
+          drawerType: 'front',
+          overlayColor: 'rgba(0,0,0,0.5)',
+        }}
+        drawerContent={(props) => <DrawerTab {...props} />}
+      >
+        <Drawer.Screen 
+          name="Login" 
+          component={Login} 
+          options={{
+            drawerItemStyle: { display: 'none' },
+          }} 
+        />
+        <Drawer.Screen 
+          name="Dashboard" 
+          component={Dashboard} 
+          options={{
+            drawerItemStyle: { display: 'none' },
+          }} 
+        />
+        <Drawer.Screen 
+          name="Details" 
+          component={Details} 
+          options={{
+            drawerItemStyle: { display: 'none' },
+          }} 
+        />
+      </Drawer.Navigator>
+    </NavigationContainer>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default App;
