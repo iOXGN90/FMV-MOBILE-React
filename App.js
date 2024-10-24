@@ -1,50 +1,31 @@
-import 'react-native-gesture-handler'; // Make sure this is at the top
-// import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import 'react-native-gesture-handler'; // Must be at the top
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 
 import Login from './src/screens/Login';
 import Dashboard from './src/screens/Dashboard';
 import Details from './src/screens/Details';
-import DrawerTab from './src/screens/components/DrawerTab';
 
-const Drawer = createDrawerNavigator();
+// Stack Navigator for controlling transitions
+const Stack = createStackNavigator();
+
+// Stack Navigator to handle screen transitions
 
 const App = () => {
   return (
     <NavigationContainer>
-      <Drawer.Navigator
-        initialRouteName="Login"
+      <Stack.Navigator
+        initialRouteName='Login'
         screenOptions={{
           headerShown: false,
-          drawerType: 'front',
-          overlayColor: 'rgba(0,0,0,0.5)',
+          animation:'slide_from_right'
         }}
-        drawerContent={(props) => <DrawerTab {...props} />}
       >
-        <Drawer.Screen 
-          name="Login" 
-          component={Login} 
-          options={{
-            drawerItemStyle: { display: 'none' },
-          }} 
-        />
-        <Drawer.Screen 
-          name="Dashboard" 
-          component={Dashboard} 
-          options={{
-            drawerItemStyle: { display: 'none' },
-          }} 
-        />
-        <Drawer.Screen 
-          name="Details" 
-          component={Details} 
-          options={{
-            drawerItemStyle: { display: 'none' },
-          }} 
-        />
-      </Drawer.Navigator>
+      <Stack.Screen name='Login' component={Login}/>
+      <Stack.Screen name='Dashboard' component={Dashboard}/>
+      {/* <Stack.Screen name='Login' component={Login}/> */}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };

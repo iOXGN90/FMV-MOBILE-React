@@ -1,38 +1,39 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { API_URL } from '../../config';
-
+import React, { useEffect, useState, useRef } from 'react';
+import { Image, View, Text, StyleSheet, DrawerLayoutAndroid, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { API_URL } from '../../config';
+import axios from 'axios';
+import OnGoingDeliveries from './components/OnGoingDeliveries';
+import PastDeliveries from './components/PastDeliveries';
+
+const ScreenWidth = Dimensions.get('window').width;
 
 const Dashboard = () => {
+  const drawer = useRef(null);
   const navigation = useNavigation();
-  // const route = useRoute();
+  const [drawerPosition, setDrawerPosition] = useState('left');
+  const [view, setView] = useState('ongoing'); // New state to manage view switching
+
+  const [id, setID] = useState('');
   const [deliverymanName, setDeliverymanName] = useState('');
   const [token, setToken] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
       const name = await AsyncStorage.getItem('deliveryman_name');
+      const id = await AsyncStorage.getItem('deliveryman_id');
+      if (id !== null) {
+        const parsedID = parseInt(id, 10);
+        setID(parsedID);
+      }
       const token = await AsyncStorage.getItem('deliveryman_token');
       setDeliverymanName(name);
       setToken(token);
-      
-      // Log immediately after setting state
-      console.log('Fetched Deliveryman Name:', name);
-      console.log('Fetched Token:', token);
     };
-  
     fetchUserData();
-  }, []);
-  
-  useEffect(() => {
-    // Log after the state has updated
-    console.log('Deliveryman Name (Updated State):', deliverymanName);
-  }, [deliverymanName]);  // This will run every time `deliverymanName` updates
-  
+  }, [id, token]);
 
   const logout = async () => {
     try {
@@ -44,6 +45,16 @@ const Dashboard = () => {
 
       if (response.data.success) {
         console.log('Logout successful');
+
+        // Clear AsyncStorage after logout
+        await AsyncStorage.removeItem('deliveryman_name');
+        await AsyncStorage.removeItem('deliveryman_token');
+
+        // Reset the state
+        setDeliverymanName('');
+        setToken('');
+
+        // Navigate to login screen
         navigation.navigate('Login');
       } else {
         Alert.alert('Logout Failed', 'Something went wrong.');
@@ -54,148 +65,221 @@ const Dashboard = () => {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => navigation.openDrawer(deliveryman_name)}
-          >
-            <Ionicons name="menu" size={28} color="black" />
-          </TouchableOpacity>
-          {/* <Text style={styles.name}>
-            {deliverymanName}
-          </Text> */}
-        </View>
+  // Drawer Navigation View
+  const navigationView = () => (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.drawerNameAndCloseHolder}>
+        <Text style={styles.drawerNameText}>{deliverymanName}</Text>
+        <View style={styles.lineBreak} />
+      </View>
+      <View style={styles.choicesButtonContainer}>
+        <Text>Delivery Categories:</Text>
+        <TouchableOpacity style={styles.CategoriesButton} onPress={() => {
+            setView('ongoing');
+            drawer.current.closeDrawer(); // Close the drawer
+        }}>
+          <Text style={styles.choicesText}>On-Going Delivery</Text>
+          <Image
+            source={require('./../assets/dashboard/modal/arrow-right-to-line-svgrepo-com.png')}
+            style={styles.drawerImage}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.CategoriesButton} onPress={() => {
+            setView('past');
+            drawer.current.closeDrawer(); // Close the drawer
+        }}>
+          <Text style={styles.choicesText}>Past Deliveries</Text>
+          <Image
+            source={require('./../assets/dashboard/modal/arrow-right-to-line-svgrepo-com.png')}
+            style={styles.drawerImage}
+          />
+        </TouchableOpacity>
+      </View>
 
-        <View style={styles.content}>
-          <View style={styles.detailsContainer}>
-            <Text style={styles.detailTitle}>Delivery Number:</Text>
-            <Text style={styles.detailText}>9</Text>
-
-            <Text style={styles.detailTitle}>Date:</Text>
-            <Text style={styles.detailText}>2024-09-03</Text>
-
-            <Text style={styles.detailTitle}>Address:</Text>
-            <Text style={styles.detailText}>Wayayow street</Text>
-
-            <Text style={styles.detailTitle}>Delivered to:</Text>
-            <Text style={styles.detailText}>Owen</Text>
-
-            <TouchableOpacity
-              style={styles.openButton}
-              onPress={() => navigation.navigate('Details')}
-            >
-              <Text style={styles.buttonText}>Open</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* More delivery details here */}
-          
-          <View style={styles.logoutButtonContainer}>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={logout}
-            >
-              <Text style={styles.buttonText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+      <View style={styles.logoutButtonContainer}>
+        <View style={styles.lineBreak} />
+        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
-}
+
+  // Content rendering logic based on the current view selected
+  const renderContent = () => {
+    if (view === 'ongoing') {
+      return <OnGoingDeliveries />;
+    } else if (view === 'past') {
+      return <PastDeliveries />;
+    }
+  };
+
+  return (
+    <DrawerLayoutAndroid
+      ref={drawer}
+      drawerWidth={ScreenWidth * 0.8}
+      drawerPosition={drawerPosition}
+      renderNavigationView={navigationView}
+    >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerNav}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => drawer.current.openDrawer()}>
+              <Image
+                style={styles.menuIcon}
+                source={require('./../assets/dashboard/menu-svgrepo-com.png')}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            <Text style={styles.name}>
+              {view === 'ongoing' ? 'On-Going Deliveries' : 'Past Deliveries'}
+            </Text>
+          </View>
+          <View style={{
+            width: '20%',
+          }}>
+            <Image
+              source={require('./../assets/login/Logo.png')}
+              style={{
+                marginLeft: '20%',
+                width: 50,
+                height: 50,
+              }}
+            />
+          </View>
+        </View>
+        <ScrollView contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false}>
+          {renderContent()}
+        </ScrollView>
+      </SafeAreaView>
+    </DrawerLayoutAndroid>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    display:'flex',
+    // justifyContent:'center',
+    backgroundColor: 'white',
   },
   header: {
-    width: '88%',
-    position: 'absolute',
-    top: 50,
-    left: 22,
-    flexDirection: 'row',  
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    borderRadius: 10,
+    display:'flex',
+    flexDirection: 'row',
+    width: '100%',
     backgroundColor: 'white',
+    // borderRadius: 10,
+    elevation: 3,
     padding: 15,
-    elevation: 6,
-    zIndex: 1,
+  },
+  headerNav: {
+    width: '80%',
+    display:'flex',
+    flexDirection:'row',
+    // justifyContent:'center',
+    alignItems:'center',
   },
   name: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'black',
-    marginLeft: 10,
+    marginLeft: 5,
   },
   iconButton: {
     paddingHorizontal: -20,
   },
   scrollViewContent: {
-    paddingTop: 100,
+    marginTop: 20,
     paddingBottom: 100,
   },
-  content: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  detailsContainer: {
-    marginTop: 10,
-    padding: 20,
-    backgroundColor: '#D3D3D3',
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
-    marginBottom: 20,
-  },
-  detailTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  detailText: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 20,
-  },
   openButton: {
-    backgroundColor: '#007dff',
+    backgroundColor: '#2955BB',
     borderRadius: 5,
     paddingVertical: 10,
     paddingHorizontal: 30,
     elevation: 6,
     alignSelf: 'flex-end',
   },
-  logoutButtonContainer: {
-    alignItems: 'flex-end',
-    marginTop: 100,
-  },
-  logoutButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: 'red',
-    borderRadius: 5,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    elevation: 4,
-    alignItems: 'center',
-  },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  drawerContent: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingTop: 20,
+  },
+  drawerText: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: '#333',
+  },
+  menuIcon: {
+    width: 30,
+    height: 30,
+  },
+  drawerNameAndCloseHolder: {
+    width: '100%',
+    flexDirection: 'column',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  drawerNameText: {
+    fontWeight: 'bold',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    fontSize: 20,
+  },
+  drawerImage: {
+    width: 20,
+    height: 20,
+  },
+  choicesButtonContainer: {
+    flexDirection: 'column',
+    padding: 10,
+    marginTop: 10,
+    width: '100%',
+    height:'80%'
+  },
+  CategoriesButton: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 5,
+    elevation: 10,
+    backgroundColor: '#2955BB',
+  },
+  choicesText: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: 'white',
+  },
+  lineBreak: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'black',
+  },
+  logoutButtonContainer: {
+    padding: 10,
+    marginTop: 10,
+    width: '100%',
+  },
+  logoutButton: {
+    width: '100%',
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 5,
+    elevation: 10,
+    backgroundColor: 'red',
+  },
+  logoutButtonText: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: 'white',
   },
 });
 
