@@ -168,9 +168,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     backgroundColor: 'white',
-    // borderRadius: 10,
-    elevation: 3,
+    borderRadius: 100,
+    elevation: 5,
+    zIndex: 99,
     padding: 15,
+    // borderWidth:0.1
   },
   headerNav: {
     width: '80%',
